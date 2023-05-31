@@ -1,9 +1,9 @@
 import React from 'react';
 import AceEditor from 'react-ace';
+import 'ace-builds/webpack-resolver';
 import 'ace-builds/src-noconflict/mode-rust';
 import 'ace-builds/src-noconflict/theme-chrome';
-import 'ace-builds/src-noconflict/ext-language_tools';
-import { StyledBorder } from './shared';
+import { StyledBorder } from '../../../components/shared';
 
 export interface EditorProps {
   code: string;
@@ -14,7 +14,8 @@ function Editor({ code, onChange }: EditorProps) {
   return (
     <StyledBorder>
       <AceEditor
-        style={{ width: '100%', height: '65vh' }}
+        style={{ width: '100%' }}
+        minLines={10}
         mode='rust'
         theme='chrome'
         name='editor'

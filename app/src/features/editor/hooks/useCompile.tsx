@@ -1,24 +1,61 @@
 import styled from '@emotion/styled';
 import ansicolor from 'ansicolor';
 import React, { useState, useEffect } from 'react';
+import {
+  loadAbi,
+  loadBytecode,
+  saveAbi,
+  saveBytecode,
+} from '../../../utils/localStorage';
+import { CopyableHex } from '../../../components/shared';
+
+function toResults(
+  prefixedBytecode: string,
+  abi: string
+): React.ReactElement[] {
+  return [
+    <div key={'bytecode'}>
+      <b>Bytecode</b>:<br />
+      <CopyableHex hex={prefixedBytecode} />
+      <br />
+      <br />
+    </div>,
+    <div key={'abi'}>
+      <b>ABI:</b>
+      <br />
+      {abi}
+    </div>,
+  ];
+}
+
+function loadResults(): React.ReactElement[] | undefined {
+  let abi = loadAbi();
+  let bytecode = loadBytecode();
+  if (!abi.length || !bytecode.length) {
+    return undefined;
+  }
+  return toResults(bytecode, abi);
+}
 
 export function useCompile(
   code: string | undefined,
-  onError: (error: string | undefined) => void
-): React.ReactElement[] {
-  const [results, setResults] = useState<React.ReactElement[]>([]);
+  onError: (error: string | undefined) => void,
+  setIsCompiled: (isCompiled: boolean) => void,
+  setResults: (results: React.ReactElement[]) => void
+) {
   const [serverError, setServerError] = useState<boolean>(false);
 
   useEffect(() => {
     if (!code) {
-      setResults([<>Click 'Compile' to build your code.</>]);
+      setResults(loadResults() ?? [<>Click 'Compile' to build your code.</>]);
       return;
     }
-
-    if (!code.length) {
+    if (!code?.length) {
       setResults([<>Add some code to compile.</>]);
       return;
     }
+
+    setResults([<>Compiling...</>]);
 
     // TODO: Determine the URL based on the NODE_ENV.
     const server_uri = 'https://api.sway-playground.org/compile';
@@ -48,41 +85,31 @@ export function useCompile(
             const Span = styled.span`
               ${css}
             `;
-            return <Span>{text}</Span>;
+            return <Span key={`${i}-${text}`}>{text}</Span>;
           });
           setResults(results);
+          saveAbi('');
+          saveBytecode('');
         } else {
-          setResults([
-            <>
-              <b>Bytecode</b>:<br />
-              0x{response.bytecode}
-              <br />
-              <br />
-            </>,
-            <>
-              <b>ABI:</b>
-              <br />
-              {response.abi}
-            </>,
-          ]);
+          const { abi, bytecode } = response;
+          const prefixedBytecode = `0x${bytecode}`;
+          saveAbi(abi);
+          saveBytecode(prefixedBytecode);
+          setResults(toResults(prefixedBytecode, abi));
         }
       })
       .catch(() => {
         console.error('Unexpected error compiling contract.');
         setServerError(true);
       });
-  }, [code]);
+    setIsCompiled(true);
+  }, [code, setIsCompiled, setResults]);
 
   useEffect(() => {
     if (serverError) {
       onError(
-        serverError
-          ? 'There was an unexpected error compiling your contract. Please try again.'
-          : undefined
+        'There was an unexpected error compiling your contract. Please try again.'
       );
-      //   setServerError(false);
     }
   }, [serverError, onError]);
-
-  return results;
 }
