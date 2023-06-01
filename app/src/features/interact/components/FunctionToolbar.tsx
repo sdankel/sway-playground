@@ -10,7 +10,7 @@ interface FunctionToolbarProps {
   functionName: string;
   parameters: CallableParamValue[];
   setResponse: (response: string) => void;
-  setError: (error: string) => void;
+  updateLog: (entry: string) => void;
 }
 
 function FunctionToolbar({
@@ -18,13 +18,15 @@ function FunctionToolbar({
   functionName,
   parameters,
   setResponse,
-  setError,
+  updateLog,
 }: FunctionToolbarProps) {
   const [dryrun, setDryrun] = React.useState(true);
 
+  const title = parameters.length ? 'Parameters' : 'No Parameters';
+
   return (
     <Toolbar style={{ padding: '0 2px 0', justifyContent: 'space-between' }}>
-      <div style={{ float: 'left' }}>Parameters</div>
+      <div style={{ float: 'left' }}>{title}</div>
       <FormGroup
         style={{
           marginLeft: '15px',
@@ -40,7 +42,7 @@ function FunctionToolbar({
             parameters={parameters}
             callType={dryrun ? 'dryrun' : 'call'}
             setResponse={setResponse}
-            setError={setError}
+            updateLog={updateLog}
           />
         </div>
       </FormGroup>

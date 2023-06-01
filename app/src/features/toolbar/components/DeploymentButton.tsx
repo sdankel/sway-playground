@@ -1,10 +1,10 @@
 import React from 'react';
-import { DeployState, NetworkState } from '../../../utils/types';
+import { DeployState } from '../../../utils/types';
 import { useDeployContract } from '../hooks/useDeployContract';
 import SecondaryButton from '../../../components/SecondaryButton';
 import { ButtonSpinner } from '../../../components/shared';
 import { useCallback, useMemo } from 'react';
-import ConnectionButton from './ConnectionButton';
+import { useProvider } from '../hooks/useProvider';
 interface DeploymentButtonProps {
   abi: string;
   bytecode: string;
@@ -12,9 +12,8 @@ interface DeploymentButtonProps {
   setContractId: (contractId: string) => void;
   deployState: DeployState;
   setDeployState: (state: DeployState) => void;
-  networkState: NetworkState;
-  setNetworkState: (state: NetworkState) => void;
-  setError: (error: string) => void;
+  setDrawerOpen: (open: boolean) => void;
+  updateLog: (entry: string) => void;
 }
 
 export function DeploymentButton({
@@ -24,31 +23,44 @@ export function DeploymentButton({
   setContractId,
   deployState,
   setDeployState,
-  networkState,
-  setNetworkState,
-  setError,
+  setDrawerOpen,
+  updateLog,
 }: DeploymentButtonProps) {
+  const { provider } = useProvider();
+
+  const networkUrl = provider?.url;
+
+  function handleError(error: Error) {
+    setDeployState(DeployState.NOT_DEPLOYED);
+    updateLog(`Deployment failed: ${error.message}`);
+  }
+
+  function handleSuccess(data: any) {
+    setDeployState(DeployState.DEPLOYED);
+    setContractId(data);
+    setDrawerOpen(true);
+    updateLog(`Contract deployed at address: ${data}`);
+  }
+
   const deployContractMutation = useDeployContract(
     abi,
     bytecode,
-    setContractId,
-    setDeployState,
-    setError
+    handleError,
+    handleSuccess
   );
 
-  const onDeployClick = useCallback(() => {
-    if (networkState === NetworkState.CAN_DISCONNECT) {
-      setDeployState(DeployState.DEPLOYING);
-      deployContractMutation.mutate();
-    }
-  }, [deployContractMutation, networkState, setDeployState]);
+  const onDeployClick = useCallback(async () => {
+    updateLog(`Deploying contract to ${networkUrl}`);
+    setDeployState(DeployState.DEPLOYING);
+    deployContractMutation.mutate();
+  }, [deployContractMutation, networkUrl, setDeployState, updateLog]);
 
   const { isDisabled, tooltip } = useMemo(() => {
     switch (deployState) {
       case DeployState.DEPLOYING:
         return {
           isDisabled: true,
-          tooltip: 'Deploying the contract',
+          tooltip: `Deploying contract to ${networkUrl}`,
         };
       case DeployState.NOT_DEPLOYED:
         return {
@@ -62,18 +74,7 @@ export function DeploymentButton({
             'Contract is deployed. You can interact with the deployed contract or re-compile and deploy a new contract.',
         };
     }
-  }, [abi, bytecode, deployState, isCompiled]);
-
-  if (networkState === NetworkState.CAN_CONNECT) {
-    return (
-      <ConnectionButton
-        setDeployState={setDeployState}
-        networkState={networkState}
-        setNetworkState={setNetworkState}
-        setError={setError}
-      />
-    );
-  }
+  }, [abi, bytecode, deployState, isCompiled, networkUrl]);
 
   return (
     <SecondaryButton

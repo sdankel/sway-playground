@@ -12,7 +12,7 @@ interface FunctionFormProps {
   functionName: string;
   inputInstances: InputInstance[];
   setResponse: (response: string) => void;
-  setError: (error: string) => void;
+  updateLog: (entry: string) => void;
 }
 
 export function FunctionForm({
@@ -20,7 +20,7 @@ export function FunctionForm({
   setResponse,
   functionName,
   inputInstances,
-  setError,
+  updateLog,
 }: FunctionFormProps) {
   const [paramValues, setParamValues] = useState(
     Array<SimpleParamValue>(inputInstances.length)
@@ -58,11 +58,11 @@ export function FunctionForm({
         functionName={functionName}
         parameters={transformedParams}
         setResponse={setResponse}
-        setError={setError}
+        updateLog={updateLog}
       />
 
       <FunctionParameters
-        inputInstances={inputInstances as InputInstance[]}
+        inputInstances={inputInstances}
         functionName={functionName}
         paramValues={paramValues}
         setParamValues={setParamValues}
